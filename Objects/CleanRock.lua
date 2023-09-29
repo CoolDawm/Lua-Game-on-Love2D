@@ -1,0 +1,54 @@
+CleanRock = GameObject:extend()
+
+function CleanRock:new(area, x, y, opts)
+    CleanRock.super.new(self, area, x, y, opts)
+
+    local direction = table.random({-1, 1})
+    self.x = gw/2 + direction*(gw/2 + 48)
+    self.y = random(16, gh - 16)
+    self.depth=50
+    self.w, self.h = 10, 10
+    self.collider = self.area.world:newPolygonCollider(createIrregularPolygon(10))
+    self.collider:setPosition(self.x, self.y)
+    self.collider:setObject(self)
+    self.collider:setCollisionClass('Enemy')
+    self.collider:setFixedRotation(false)
+    self.v = -direction*random(20, 40)
+    self.collider:setLinearVelocity(self.v, 0)
+    self.collider:applyAngularImpulse(random(-100, 100))
+
+    self.hp = 200
+end
+
+function CleanRock:update(dt)
+    CleanRock.super.update(self, dt)
+
+    self.collider:setLinearVelocity(self.v, 0) 
+end
+
+function CleanRock:draw()
+    love.graphics.setColor(default_color)
+    if self.hit_flash then love.graphics.setColor(default_color) end
+    local points = {self.collider:getWorldPoints(self.collider.shapes.main:getPoints())}
+    love.graphics.polygon('line', points)
+    love.graphics.setColor(default_color)
+end
+
+function CleanRock:destroy()
+    CleanRock.super.destroy(self)
+end
+
+function CleanRock:hit(damage)
+    if self.dead then return end
+
+    self.hp = self.hp - (damage or 100)
+    if self.hp <= 0 then
+        self.dead = true  
+        death_sound:play()     
+        self.area:addGameObject('AttackV', self.x+5, self.y+5)
+        self.area:addGameObject('EnemyDeathEffect', self.x, self.y, {color = default_color, w = 2*self.w})
+    else
+        self.hit_flash = true
+        self.timer:after('hit_flash', 0.2, function() self.hit_flash = false end)
+    end
+end
